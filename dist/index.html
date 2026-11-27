@@ -38,6 +38,8 @@ input{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:
 .seg input{width:100%}
 .lab{font-size:12px;color:var(--sub)}
 .hide{display:none}
+.fb{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;cursor:pointer}
+#fmsg:empty{display:none}
 .pal{position:relative}
 .pop{z-index:5;position:absolute;right:100%;top:0;height:100%;display:none;align-items:center;gap:6px;padding:0 8px;margin-right:6px;background:var(--card);border:1px solid var(--bd);border-radius:8px}
 .pop::after{content:"";position:absolute;left:100%;top:0;width:8px;height:100%}
@@ -53,9 +55,12 @@ input{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:
   <button class="ib" id="upd" title="新しいアップデートがあります" style="display:none;align-items:center;gap:6px;line-height:1.4;padding:6px 10px;font-size:13px;white-space:nowrap;border-color:var(--ac)"><svg viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>新しいアップデートがあります</button>
   <div class="pal" id="pal"><button class="ib" id="pbtn" aria-label="アクセントカラー" title="アクセントカラー"><svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></button><div id="sw" class="pop"></div></div>
   <button class="ib" id="mode"></button>
+  <label class="fb ib" id="imp" title="ファイルを読み込む" aria-label="ファイルを読み込む" style="padding:6px 8px;line-height:0"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg><input type="file" id="file" accept=".json,application/json" hidden></label>
   <button class="ib" id="save" aria-label="ファイルに出力" title="ファイルに出力"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
   <button class="ib" id="tog" aria-label="設定" title="設定"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 </div>
+
+<div class="lab" id="fmsg" style="text-align:right;margin:-4px 0 10px"></div>
 
 <section class="card hide" id="set">
   <strong>設定</strong>
@@ -64,6 +69,7 @@ input{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:
     <button class="p" id="addRoute">＋ 経路を追加</button>
     
     <p class="lab">乗り換えがある場合は「区間を追加」で区間ごとの運賃を入力すると、合算されます。往復は1日あたり2倍で計算します。登録した全経路の合計が、1日あたりの交通費になります。</p>
+    
   </div>
 </section>
 
@@ -165,6 +171,26 @@ $('todayBtn').onclick=()=>{const n=new Date();Y=n.getFullYear();M=n.getMonth();r
 
 // 設定・経路
 $('tog').onclick=()=>$('set').classList.toggle('hide');
+$('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(!Array.isArray(d['通所日'])||!Array.isArray(d['経路']))throw 0;
+      S.days={};d['通所日'].forEach(k=>{if(/^\d{4}-\d{2}-\d{2}$/.test(k))S.days[k]=1});
+      S.routes=d['経路'].map((r,i)=>({id:'r'+Date.now()+i,name:String(r['名前']||''),round:r['往復']!==false,segs:(r['区間']||[]).map(s=>({from:String(s['出発']||''),to:String(s['到着']||''),fare:+s['運賃']||0}))}));
+      S.routes.forEach(r=>{if(!r.segs.length)r.segs.push({from:'',to:'',fare:0})});
+      const t=d['設定']||{};
+      if(['auto','light','dark'].includes(t['テーマ']))S.theme=t['テーマ'];
+      if(ACC.includes(t['アクセントカラー']))S.accent=t['アクセントカラー'];
+      save();applyAccent();applyTheme();renderAll();
+      $('fmsg').textContent=`読み込みました（通所日 ${Object.keys(S.days).length}日、経路 ${S.routes.length}件）`;
+    }catch(err){$('fmsg').textContent='読み込めませんでした（保存したファイルを選んでください）'}
+  };
+  rd.readAsText(f);
+  e.target.value='';
+};
 $('save').onclick=async()=>{
   save();
   const days=Object.keys(S.days).filter(k=>S.days[k]).sort();
@@ -175,7 +201,7 @@ $('save').onclick=async()=>{
     '通所日数':days.length,
     '交通費合計':days.length*day,
     '1日の交通費':day,
-    '経路':S.routes.map(r=>({'種類':r.mode==='bus'?'バス':'電車','表示':label(r),'往復':!!r.round,'区間':r.segs.map(s=>({'出発':s.from,'到着':s.to,'運賃':+s.fare||0})),'1日の交通費':cost(r)})),
+    '経路':S.routes.map(r=>({'名前':r.name||'','表示':label(r),'往復':!!r.round,'区間':r.segs.map(s=>({'出発':s.from,'到着':s.to,'運賃':+s.fare||0})),'1日の交通費':cost(r)})),
     '設定':{'テーマ':S.theme||'auto','アクセントカラー':S.accent||ACC[0]}
   };
   const name=`transport_${new Date().toISOString().slice(0,10)}.json`;
@@ -183,13 +209,14 @@ $('save').onclick=async()=>{
   try{
     if(window.__TAURI__){
       const p=await window.__TAURI__.core.invoke('save_export',{filename:name,data:json});
-      if(p)alert('保存しました:\n'+p);
+      if(p)$('fmsg').textContent='保存しました: '+p;
     }else{
       const a=document.createElement('a');
       a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
       a.download=name;a.click();URL.revokeObjectURL(a.href);
+      $('fmsg').textContent='ダウンロードしました: '+name;
     }
-  }catch(e){alert('保存に失敗しました: '+e)}
+  }catch(e){$('fmsg').textContent='保存に失敗しました: '+e}
 };
 $('routes').oninput=e=>{
   const el=e.target,f=el.dataset.f,sb=el.closest('.seg');if(!f)return;

@@ -24,7 +24,7 @@ jobs:
           workspaces: "src-tauri -> target"
 
       - name: Build frontend dir
-        run: node -e "const f=require('fs');f.mkdirSync('dist',{recursive:true});f.copyFileSync('app.html','dist/index.html')"
+        run: node -e "const f=require('fs');f.mkdirSync('dist',{recursive:true});f.copyFileSync('index.html','dist/index.html')"
 
       - uses: tauri-apps/tauri-action@v0
         env:
