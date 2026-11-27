@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>カレンダー</title>
+<style>
+:root{--bg:#f3f3f3;--card:#fff;--tx:#222;--sub:#757575;--bd:#dcdcdc;--ac:#6b7280;--sat:#2b5fa8;color-scheme:light;box-sizing:border-box;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+:root[data-theme="dark"]{--bg:#161616;--card:#212121;--tx:#ececec;--sub:#a0a0a0;--bd:#383838;--sat:#7fa6d6;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.5}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+button,input{font:inherit;color:var(--tx)}
+button{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;cursor:pointer}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff}
+button.d{color:#d64545}
+input{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;min-width:0}
+.ib{padding:6px 8px;line-height:0}
+.ib svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wd{text-align:center;font-size:12px;color:var(--sub);padding:4px 0}
+.day{aspect-ratio:1/1;min-height:44px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);padding:0;font-size:15px}
+.day.sun{color:#d64545}.day.sat{color:var(--sat)}
+.day.today{outline:2px solid var(--ac)}
+.day.sel{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}
+.day.empty{visibility:hidden}
+.big{font-size:28px;font-weight:700}
+.stat{flex:1;min-width:120px}
+.stat span{font-size:12px;color:var(--sub);display:block}
+.bk{font-size:14px;color:var(--sub);margin-top:8px}
+.bk div{display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding:4px 0}
+.route{border:1px solid var(--bd);border-radius:12px;padding:10px;margin-bottom:10px}
+.seg{display:grid;grid-template-columns:1fr 1fr 90px auto;gap:6px;margin-top:6px;align-items:center}
+.seg input{width:100%}
+.lab{font-size:12px;color:var(--sub)}
+.hide{display:none}
+.pal{position:relative}
+.pop{z-index:5;position:absolute;right:100%;top:0;height:100%;display:none;align-items:center;gap:6px;padding:0 8px;margin-right:6px;background:var(--card);border:1px solid var(--bd);border-radius:8px}
+.pop::after{content:"";position:absolute;left:100%;top:0;width:8px;height:100%}
+.pal:hover .pop,.pal.open .pop{display:flex}
+.sw{width:26px;height:26px;border-radius:50%;padding:0;border:2px solid var(--card)}
+.sw.on{outline:2px solid var(--tx)}
+@media(max-width:480px){.seg{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<main>
+<div class="row" style="justify-content:flex-end;margin-bottom:10px">
+  <button class="ib" id="upd" title="新しいアップデートがあります" style="display:none;align-items:center;gap:6px;line-height:1.4;padding:6px 10px;font-size:13px;white-space:nowrap;border-color:var(--ac)"><svg viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>新しいアップデートがあります</button>
+  <div class="pal" id="pal"><button class="ib" id="pbtn" aria-label="アクセントカラー" title="アクセントカラー"><svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></button><div id="sw" class="pop"></div></div>
+  <button class="ib" id="mode"></button>
+  <button class="ib" id="save" aria-label="ファイルに出力" title="ファイルに出力"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
+  <button class="ib" id="tog" aria-label="設定" title="設定"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+</div>
+
+<section class="card hide" id="set">
+  <strong>設定</strong>
+  <div style="margin-top:10px">
+    <div id="routes"></div>
+    <button class="p" id="addRoute">＋ 経路を追加</button>
+    
+    <p class="lab">乗り換えがある場合は「区間を追加」で区間ごとの運賃を入力すると、合算されます。往復は1日あたり2倍で計算します。登録した全経路の合計が、1日あたりの交通費になります。</p>
+  </div>
+</section>
+
+<section class="card">
+  <div class="row" style="margin-bottom:10px">
+    <button id="prev">‹</button>
+    <strong id="ym" class="sp" style="text-align:center"></strong>
+    <button id="next">›</button>
+    <button id="todayBtn">今月</button>
+  </div>
+  <div class="grid" id="cal"></div>
+  
+</section>
+
+<section class="card">
+  <div class="row">
+    <div class="stat"><span>通所日数（今月）</span><div class="big" id="cnt">0日</div></div>
+    <div class="stat"><span>交通費合計（今月）</span><div class="big" id="sum">¥0</div></div>
+  </div>
+  <div class="bk" id="bk"></div>
+</section>
+</main>
+
+<script>
+const ACC=['#6b7280','#e0743a','#2e9e6b','#9b59d0','#d1486b','#c9a227','#3b82f6'];
+const KEY='transport-calc-v1';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const yen=n=>'¥'+Number(n).toLocaleString('ja-JP');
+const pad=n=>String(n).padStart(2,'0');
+
+let S={};
+try{S=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
+S.days=S.days||{};
+S.routes=S.routes||[{id:'r1',mode:'train',round:true,segs:[{from:'自宅最寄駅',to:'職場最寄駅',fare:0}]}];
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}};
+
+const cost=r=>r.segs.reduce((a,s)=>a+(+s.fare||0),0)*(r.round?2:1);
+const label=r=>{
+  const a=r.segs[0],b=r.segs[r.segs.length-1];
+  if(!a||!(a.from||b.to))return '（未設定）';
+  return (a.from||'?')+(r.round?' ⇄ ':' → ')+(b.to||'?');
+};
+
+let Y=new Date().getFullYear(),M=new Date().getMonth();
+const mkey=()=>`${Y}-${pad(M+1)}-`;
+const refresh=()=>{save();renderCal();renderSum()};
+
+// 2回押しで確定するボタン
+function arm(b,msg,fn){
+  if(b.dataset.arm){b.dataset.arm='';b.textContent=b.dataset.t;fn();return}
+  b.dataset.arm='1';b.dataset.t=b.textContent;b.textContent=msg;
+  setTimeout(()=>{if(b.dataset.arm){b.dataset.arm='';b.textContent=b.dataset.t}},3000);
+}
+
+function renderCal(){
+  $('ym').textContent=`${Y}年${M+1}月`;
+  const first=new Date(Y,M,1).getDay(),n=new Date(Y,M+1,0).getDate(),t=new Date();
+  let h=[...'日月火水木金土'].map(d=>`<div class="wd">${d}</div>`).join('')+'<div class="day empty"></div>'.repeat(first);
+  for(let d=1;d<=n;d++){
+    const k=mkey()+pad(d),wd=(first+d-1)%7;
+    const c=[wd===0?'sun':wd===6?'sat':'',t.getFullYear()===Y&&t.getMonth()===M&&t.getDate()===d?'today':'',S.days[k]?'sel':''].join(' ');
+    h+=`<button class="day ${c}" data-k="${k}">${d}</button>`;
+  }
+  $('cal').innerHTML=h;
+}
+
+function renderSum(){
+  const p=mkey(),cnt=Object.keys(S.days).filter(k=>k.startsWith(p)&&S.days[k]).length;
+  const day=S.routes.reduce((a,r)=>a+cost(r),0);
+  $('cnt').textContent=cnt+'日';
+  $('sum').textContent=yen(cnt*day);
+  $('bk').innerHTML=S.routes.map(r=>`<div><span>${esc(r.name||label(r))} × ${cnt}日</span><span>${yen(cost(r)*cnt)}</span></div>`).join('')
+    +(S.routes.length>1?`<div style="color:var(--tx)"><strong>全経路の合計（${cnt}日）</strong><strong>${yen(cnt*day)}</strong></div>`:'');
+}
+
+function renderRoutes(){
+  $('routes').innerHTML=S.routes.map((r,i)=>{
+    const dir=r.round?'往復':'片道';
+    return `<div class="route" data-r="${r.id}">
+<div class="row"><input class="sp" data-f="name" value="${esc(r.name)}" placeholder="経路名"><button data-a="toggleRound" style="min-width:64px">${dir}</button><button class="d" data-a="delRoute">削除</button></div>
+${r.segs.map((s,j)=>`<div class="seg" data-s="${j}"><input data-f="from" value="${esc(s.from)}" placeholder="出発"><input data-f="to" value="${esc(s.to)}" placeholder="到着"><input data-f="fare" type="number" min="0" inputmode="numeric" value="${s.fare}" placeholder="運賃(円)"><button class="d" data-a="delSeg"${r.segs.length<2?' disabled':''}>✕</button></div>`).join('')}
+<div class="row" style="margin-top:8px"><button data-a="addSeg">＋ 区間を追加（乗り換え）</button><span class="sp"></span><span class="lab">1日あたり <strong class="rc">${yen(cost(r))}</strong>（${r.segs.length}区間 × ${dir}）</span></div></div>`;
+  }).join('');
+}
+const renderAll=()=>{renderCal();renderSum();renderRoutes()};
+
+// カレンダー
+$('cal').onclick=e=>{
+  const k=e.target.dataset.k;if(!k)return;
+  if(S.days[k])delete S.days[k];else S.days[k]=1;
+  refresh();
+};
+const go=n=>{M+=n;if(M<0){M=11;Y--}if(M>11){M=0;Y++}renderCal();renderSum()};
+$('prev').onclick=()=>go(-1);
+$('next').onclick=()=>go(1);
+$('todayBtn').onclick=()=>{const n=new Date();Y=n.getFullYear();M=n.getMonth();renderCal();renderSum()};
+
+
+// 設定・経路
+$('tog').onclick=()=>$('set').classList.toggle('hide');
+$('save').onclick=async()=>{
+  save();
+  const dl=window.claude&&await window.claude.use('downloads');if(!dl)return;
+  const days=Object.keys(S.days).filter(k=>S.days[k]).sort();
+  const day=S.routes.reduce((a,r)=>a+cost(r),0);
+  const data={
+    '出力日時':new Date().toISOString(),
+    '通所日':days,
+    '通所日数':days.length,
+    '交通費合計':days.length*day,
+    '1日の交通費':day,
+    '経路':S.routes.map(r=>({'種類':r.mode==='bus'?'バス':'電車','表示':label(r),'往復':!!r.round,'区間':r.segs.map(s=>({'出発':s.from,'到着':s.to,'運賃':+s.fare||0})),'1日の交通費':cost(r)})),
+    '設定':{'テーマ':S.theme||'auto','アクセントカラー':S.accent||ACC[0]}
+  };
+  try{await dl.save({filename:`transport_${new Date().toISOString().slice(0,10)}.json`,data:JSON.stringify(data,null,2)})}catch(e){}
+};
+$('routes').oninput=e=>{
+  const el=e.target,f=el.dataset.f,sb=el.closest('.seg');if(!f)return;
+  const rb=el.closest('.route'),r=S.routes.find(x=>x.id===rb.dataset.r);
+  if(sb)r.segs[+sb.dataset.s][f]=f==='fare'?(+el.value||0):el.value;else r[f]=el.value;
+  rb.querySelector('.rc').textContent=yen(cost(r));
+  refresh();
+};
+$('routes').onclick=e=>{
+  const b=e.target,a=b.dataset.a;if(!a)return;
+  const r=S.routes.find(x=>x.id===b.closest('.route').dataset.r);
+  const done=()=>{save();renderAll()};
+  if(a==='delRoute')return arm(b,'もう一度押すと削除',()=>{S.routes=S.routes.filter(x=>x!==r);done()});
+  if(a==='toggleRound')r.round=!r.round;
+  if(a==='addSeg')r.segs.push({from:(r.segs[r.segs.length-1]||{}).to||'',to:'',fare:0});
+  if(a==='delSeg')r.segs.splice(+b.closest('.seg').dataset.s,1);
+  done();
+};
+$('addRoute').onclick=()=>{S.routes.push({id:'r'+Date.now(),name:'',round:true,segs:[{from:'',to:'',fare:0}]});save();renderAll()};
+
+
+// テーマ
+const mq=matchMedia('(prefers-color-scheme: dark)');
+const SUN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+const MOON='<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+const isDark=()=>S.theme&&S.theme!=='auto'?S.theme==='dark':mq.matches;
+function applyTheme(){
+  const d=isDark();
+  document.documentElement.dataset.theme=d?'dark':'light';
+  $('mode').innerHTML=d?MOON:SUN;
+  $('mode').title=$('mode').ariaLabel=d?'ダーク（押すとライト）':'ライト（押すとダーク）';
+}
+$('mode').onclick=()=>{S.theme=isDark()?'light':'dark';save();applyTheme()};
+if(mq.addEventListener)mq.addEventListener('change',applyTheme);else if(mq.addListener)mq.addListener(applyTheme);
+
+// アクセントカラー
+function applyAccent(){
+  const a=S.accent||ACC[0];
+  document.documentElement.style.setProperty('--ac',a);
+  $('sw').innerHTML=ACC.map(c=>`<button class="sw${c===a?' on':''}" data-c="${c}" style="background:${c}" aria-label="${c}"></button>`).join('');
+}
+$('sw').onclick=e=>{const c=e.target.dataset.c;if(c){S.accent=c;save();applyAccent()}};
+$('pbtn').onclick=()=>$('pal').classList.toggle('open');
+$('pal').onmouseleave=()=>$('pal').classList.remove('open');
+document.addEventListener('click',e=>{if(!$('pal').contains(e.target))$('pal').classList.remove('open')});
+
+applyAccent();applyTheme();renderAll();
+
+// 更新があるときだけボタンを表示する
+async function checkUpdate(){
+  // shortcut: 更新配信元が未設定なので常に false。tauri-plugin-updater と endpoint/pubkey を追加したらここで判定する。
+  return false;
+}
+checkUpdate().then(u=>{if(u)$('upd').style.display='inline-flex'});
+</script>
+</body>
+</html>

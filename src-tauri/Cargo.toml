@@ -1,0 +1,12 @@
+[package]
+name = "calendar"
+version = "0.1.0"
+description = "カレンダー / 交通費計算"
+edition = "2021"
+rust-version = "1.77.2"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
