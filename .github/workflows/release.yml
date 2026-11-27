@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install Tauri CLI
+        run: npm install
+
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: swatinem/rust-cache@v2
