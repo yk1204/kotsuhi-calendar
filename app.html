@@ -167,7 +167,6 @@ $('todayBtn').onclick=()=>{const n=new Date();Y=n.getFullYear();M=n.getMonth();r
 $('tog').onclick=()=>$('set').classList.toggle('hide');
 $('save').onclick=async()=>{
   save();
-  const dl=window.claude&&await window.claude.use('downloads');if(!dl)return;
   const days=Object.keys(S.days).filter(k=>S.days[k]).sort();
   const day=S.routes.reduce((a,r)=>a+cost(r),0);
   const data={
@@ -179,7 +178,18 @@ $('save').onclick=async()=>{
     '経路':S.routes.map(r=>({'種類':r.mode==='bus'?'バス':'電車','表示':label(r),'往復':!!r.round,'区間':r.segs.map(s=>({'出発':s.from,'到着':s.to,'運賃':+s.fare||0})),'1日の交通費':cost(r)})),
     '設定':{'テーマ':S.theme||'auto','アクセントカラー':S.accent||ACC[0]}
   };
-  try{await dl.save({filename:`transport_${new Date().toISOString().slice(0,10)}.json`,data:JSON.stringify(data,null,2)})}catch(e){}
+  const name=`transport_${new Date().toISOString().slice(0,10)}.json`;
+  const json=JSON.stringify(data,null,2);
+  try{
+    if(window.__TAURI__){
+      const p=await window.__TAURI__.core.invoke('save_export',{filename:name,data:json});
+      alert('保存しました:\n'+p);
+    }else{
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+      a.download=name;a.click();URL.revokeObjectURL(a.href);
+    }
+  }catch(e){alert('保存に失敗しました: '+e)}
 };
 $('routes').oninput=e=>{
   const el=e.target,f=el.dataset.f,sb=el.closest('.seg');if(!f)return;
