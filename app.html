@@ -228,12 +228,17 @@ document.addEventListener('click',e=>{if(!$('pal').contains(e.target))$('pal').c
 
 applyAccent();applyTheme();renderAll();
 
-// 更新があるときだけボタンを表示する
+// 更新チェック（Tauri内でのみ動作）
+const invoke=cmd=>window.__TAURI__?.core?.invoke(cmd);
 async function checkUpdate(){
-  // shortcut: 更新配信元が未設定なので常に false。tauri-plugin-updater と endpoint/pubkey を追加したらここで判定する。
-  return false;
+  if(!invoke)return null;
+  try{return await invoke('check_update')}catch(e){return null}
 }
-checkUpdate().then(u=>{if(u)$('upd').style.display='inline-flex'});
+$('upd').onclick=async()=>{
+  const b=$('upd');b.disabled=true;b.textContent='更新中…';
+  try{await invoke('install_update')}catch(e){b.textContent='更新に失敗しました';b.disabled=false}
+};
+checkUpdate().then(v=>{if(v)$('upd').style.display='inline-flex'});
 </script>
 </body>
 </html>

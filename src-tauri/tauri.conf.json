@@ -7,6 +7,7 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "カレンダー",
@@ -21,6 +22,15 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": ["icons/icon.ico"]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE4MjEwQzg2NjE1RDNDM0YKUldRL1BGMWhoZ3docUJEMTlyYXltbStOb00wVEFBRytlVEExejJMTkpnbElPSDFLbmVkVnh4aUQK",
+      "endpoints": [
+        "https://github.com/yk1204/kotsuhi-calendar/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

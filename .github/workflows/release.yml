@@ -1,0 +1,38 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Build frontend dir
+        run: node -e "const f=require('fs');f.mkdirSync('dist',{recursive:true});f.copyFileSync('app.html','dist/index.html')"
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "交通費カレンダー ${{ github.ref_name }}"
+          releaseBody: "変更点をここに記載してください。"
+          releaseDraft: false
+          prerelease: false
