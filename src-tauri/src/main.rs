@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_updater::UpdaterExt;
 
 #[tauri::command]
@@ -24,22 +24,33 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn save_export(app: tauri::AppHandle, filename: String, data: String) -> Result<String, String> {
-    // フロントから来るのはファイル名のみ許可（パス traversal 防止）
-    let name = std::path::Path::new(&filename)
-        .file_name()
-        .ok_or("invalid filename")?
-        .to_owned();
-    let dir = app.path().download_dir().map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let path = dir.join(name);
+async fn save_export(
+    app: tauri::AppHandle,
+    filename: String,
+    data: String,
+) -> Result<Option<String>, String> {
+    let path = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .set_title("保存先を選択")
+            .set_file_name(filename)
+            .add_filter("JSON", &["json"])
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let Some(path) = path.and_then(|p| p.into_path().ok()) else {
+        return Ok(None); // キャンセル
+    };
     std::fs::write(&path, data).map_err(|e| e.to_string())?;
-    Ok(path.to_string_lossy().into_owned())
+    Ok(Some(path.to_string_lossy().into_owned()))
 }
 
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             check_update,
             install_update,

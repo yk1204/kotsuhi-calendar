@@ -183,7 +183,7 @@ $('save').onclick=async()=>{
   try{
     if(window.__TAURI__){
       const p=await window.__TAURI__.core.invoke('save_export',{filename:name,data:json});
-      alert('保存しました:\n'+p);
+      if(p)alert('保存しました:\n'+p);
     }else{
       const a=document.createElement('a');
       a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
